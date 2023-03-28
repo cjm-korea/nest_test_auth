@@ -3,6 +3,7 @@ import { DataSource, Repository } from "typeorm";
 import { Board } from "../board.entity";
 import { CreateBoardDto } from "../dto/create-board.dto";
 import { BoardStatus } from "../board-status.enum";
+import { User } from "src/auth/user.entity";
 
 @Injectable()
 export class BoardRepository extends Repository<Board> {
@@ -10,13 +11,14 @@ export class BoardRepository extends Repository<Board> {
         super(Board, dataSource.createEntityManager());
     }
 
-    async createBoard(createBoardDto: CreateBoardDto): Promise<Board> {
-        const { title, description} = createBoardDto;
+    async createBoard(createBoardDto: CreateBoardDto, user: User): Promise<Board> {
+        const { title, description } = createBoardDto;
 
         const board = this.create({
             title,
             description,
-            status: BoardStatus.PUBLIC
+            status: BoardStatus.PUBLIC,
+            user: user
         })
 
         await this.save(board);
@@ -24,25 +26,34 @@ export class BoardRepository extends Repository<Board> {
         return board;
     }
 
-    async getAllBoards(): Promise<Board[]> {
-        const found = await this.find();
-        if(!found){
-            throw new NotFoundException('There are no Board!')
-        }
-        return found;
+    async getAllBoards(user: User): Promise<Board[]> {
+        const query = this.createQueryBuilder('board');
+
+        query.where('board.userId = :userId', { userId: user.id });
+        const boards = await query.getMany();
+        return boards;
+        // const found = await this.find();
+        // if(!found){
+        //     throw new NotFoundException('There are no Board!')
+        // }
+        // return found;
     }
 
     async getBoardById(id: number): Promise<Board> {
-        const found = await this.findOne({where: {id: id}});
-        if(!found) {
+        const found = await this.findOne({ where: { id: id } });
+        if (!found) {
             throw new NotFoundException(`Can't find Board with id ${id}`);
         }
         return found;
     }
 
-    async deleteBoard(id:number): Promise<string> {
-        const result = await this.delete(id);
-        return `Deleted ${id} Board!`;
+    async deleteBoard(id: number, user: User): Promise<void> {
+        await this.createQueryBuilder('board')
+            .delete()
+            .from(Board)
+            .where('userId = :userId', { userId: user.id })
+            .andWhere('id = :id', { id: id })
+            .execute();
     }
 
     async updateBoardStatus(id: number, boardStatus: BoardStatus): Promise<Board> {
