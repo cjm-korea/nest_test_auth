@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeORMConfig } from './configs/typeorm.config';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
+import { DynamicTestModule } from './dynamic-test/dynamic-test.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { ConfigModule } from '@nestjs/config';
     TypeOrmModule.forRoot(typeORMConfig),
     BoardsModule,
     AuthModule,
+    DynamicTestModule,
   ],
   controllers: [],
   providers: [],
